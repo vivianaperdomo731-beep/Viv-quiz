@@ -24,8 +24,8 @@ const C = {
   gray:"#7A869A", grayLight:"#E8ECF4",
 };
 
-const PROGRESS = {intro:0,q1:10,inter1:20,q2:30,q2b:40,inter2:50,q3:60,inter3:70,q4:82,q5:96,blocked:15};
-const STEP_LBL = {q1:"1/6",q2:"2/6",q2b:"3/6",q3:"4/6",q4:"5/6",q5:"6/6"};
+const PROGRESS = {intro:0,q1:10,inter1:18,qdolor:25,inter_dolor:32,q2:39,q2b:46,inter2:52,q3:58,inter3:65,q4:72,qpresupuesto:80,qurgencia:88,q5:96,blocked:15};
+const STEP_LBL = {q1:"1/9",qdolor:"2/9",q2:"3/9",q2b:"4/9",q3:"5/9",q4:"6/9",qpresupuesto:"7/9",qurgencia:"8/9",q5:"9/9"};
 
 export default function ViviQuiz() {
   const [history, setHistory] = useState(["intro"]);
@@ -62,19 +62,22 @@ export default function ViviQuiz() {
   };
 
   const disabled = () => {
-    if(cur==="q1")  return !vals.ciudad;
-    if(cur==="q2")  return !vals.edad;
-    if(cur==="q2b") return !vals.genero;
-    if(cur==="q3")  return !vals.prioridad;
-    if(cur==="q4")  return !vals.plan;
+    if(cur==="q1")           return !vals.ciudad;
+    if(cur==="qdolor")       return !vals.dolor;
+    if(cur==="q2")           return !vals.edad;
+    if(cur==="q2b")          return !vals.genero;
+    if(cur==="q3")           return !vals.prioridad;
+    if(cur==="q4")           return !vals.plan;
+    if(cur==="qpresupuesto") return !vals.presupuesto;
+    if(cur==="qurgencia")    return !vals.urgencia;
     if(cur==="q5"||cur==="blocked") return !habeas||!name||!phone;
     return false;
   };
 
   const submitAndWA = async () => {
     setSending(true);
-    const pr=getPrices();
-    const planKey=vals.plan==="Diamante Élite Superior"?"DES":vals.plan==="Diamante Élite"?"DE":"ZE";
+    const presupuestoMap = {"accesible":"🌱 Algo accesible","equilibrio":"⚖️ Equilibrio respaldo/presupuesto","premium":"🛡️ Dispuesta a invertir más","nosegura":"🤔 Necesita orientación"};
+    const urgenciaMap   = {"semana":"🔥 Esta semana","mes":"📅 Este mes","explorando":"👀 Solo explorando","nosegura":"🤔 Aún no está segura"};
     try {
       await fetch(FORMSPREE,{
         method:"POST",
@@ -82,30 +85,37 @@ export default function ViviQuiz() {
         body:JSON.stringify({
           nombre:name, whatsapp:phone,
           ciudad:vals.ciudad==="bogota"?"Bogotá":"Otra ciudad",
-          edad:vals.edad, genero:vals.genero==="H"?"Masculino":"Femenino",
-          prioridad:vals.prioridad, plan:vals.plan,
-          tarifa_descuento:pr?fmt(pr[planKey].conv):"—",
+          edad:vals.edad,
+          genero:vals.genero==="H"?"Masculino":"Femenino",
+          frustración:vals.dolor,
+          nivel_proteccion:vals.plan,
+          presupuesto:presupuestoMap[vals.presupuesto]||vals.presupuesto,
+          disponibilidad:urgenciaMap[vals.urgencia]||vals.urgencia,
           fuente:"Quiz Coberturas Salud - Viviana Perdomo",
         }),
       });
     } catch(e){ console.error(e); }
     setSending(false); setSent(true);
-    const generoLabel = vals.genero==="H"?"Masculino":"Femenino";
-    const edadLabel = vals.edad==="0-4"?"Menor de 5 años":vals.edad==="5-14"?"Entre 5 y 14 años":"Mayor de 14 años";
-    const msg=encodeURIComponent(`Hola Viviana! 👋 Completé el diagnóstico de cobertura de salud.\n\n👤 *${name}*\n📋 Plan de interés: *${vals.plan||"—"}*\n🧒 Edad del menor: *${edadLabel}*\n🧬 Género: *${generoLabel}*\n\n¿Podemos hablar para validar mi cobertura?`);
+    const edadLabel      = vals.edad==="0-4"?"Menor de 5 años":vals.edad==="5-14"?"Entre 5 y 14 años":"Mayor de 14 años";
+    const generoLabel    = vals.genero==="H"?"Masculino":"Femenino";
+    const msg=encodeURIComponent(`Hola Viviana! 👋 Completé el diagnóstico de cobertura de salud.\n\n👤 *Nombre:* ${name}\n📞 *Teléfono:* ${phone}\n🛡️ *Nivel de protección:* ${vals.plan||"—"}\n🧒 *Edad del menor:* ${edadLabel}\n🧬 *Género:* ${generoLabel}\n💰 *Presupuesto:* ${presupuestoMap[vals.presupuesto]||"—"}\n⏰ *Disponibilidad:* ${urgenciaMap[vals.urgencia]||"—"}\n\n¿Podemos hablar para revisar la mejor opción?`);
     setTimeout(()=>window.open(`https://wa.me/${WHATSAPP}?text=${msg}`,"_blank"),300);
   };
 
   const next = () => {
-    if(cur==="intro")  { go("q1"); return; }
-    if(cur==="q1")     { go(vals.ciudad==="nacional"?"blocked":"inter1"); return; }
-    if(cur==="inter1") { go("q2"); return; }
-    if(cur==="q2")     { go("q2b"); return; }
-    if(cur==="q2b")    { go("inter2"); return; }
-    if(cur==="inter2") { go("q3"); return; }
-    if(cur==="q3")     { go("inter3"); return; }
-    if(cur==="inter3") { go("q4"); return; }
-    if(cur==="q4")     { go("q5"); return; }
+    if(cur==="intro")        { go("q1"); return; }
+    if(cur==="q1")           { go(vals.ciudad==="nacional"?"blocked":"inter1"); return; }
+    if(cur==="inter1")       { go("qdolor"); return; }
+    if(cur==="qdolor")       { go("inter_dolor"); return; }
+    if(cur==="inter_dolor")  { go("q2"); return; }
+    if(cur==="q2")           { go("q2b"); return; }
+    if(cur==="q2b")          { go("inter2"); return; }
+    if(cur==="inter2")       { go("q3"); return; }
+    if(cur==="q3")           { go("inter3"); return; }
+    if(cur==="inter3")       { go("q4"); return; }
+    if(cur==="q4")           { go("qpresupuesto"); return; }
+    if(cur==="qpresupuesto") { go("qurgencia"); return; }
+    if(cur==="qurgencia")    { go("q5"); return; }
     if(cur==="q5"||cur==="blocked") { submitAndWA(); }
   };
 
@@ -226,7 +236,7 @@ export default function ViviQuiz() {
             </div>
             <div style={{padding:"20px 20px 0"}}>
               <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:18}}>
-                {["🏥 Clínicas élite","⚡ Sin esperas","💎 15% OFF","🩺 Libre elección"].map(pill=>(
+                {["🏥 Clínicas élite","⏰ Atención oportuna","🏠 Médico en casa","📱 Telemedicina 24/7","⭐ Atención preferencial"].map(pill=>(
                   <div key={pill} style={{background:C.white,border:`1px solid ${C.grayLight}`,borderRadius:100,padding:"6px 13px",fontSize:12,fontWeight:500,color:C.navy,boxShadow:"0 1px 4px rgba(15,31,61,0.07)"}}>{pill}</div>
                 ))}
               </div>
@@ -245,7 +255,7 @@ export default function ViviQuiz() {
         {/* Q1 CIUDAD */}
         {cur==="q1" && (
           <div style={{padding:"24px 20px"}}>
-            <div style={bdg(C.blue)}>📍 Pregunta 1 de 6</div>
+            <div style={bdg(C.blue)}>📍 Pregunta 1 de 8</div>
             <h2 style={{fontSize:22,fontWeight:800,color:C.navy,lineHeight:1.25,marginBottom:8}}>¿En qué ciudad resides actualmente?</h2>
             <p style={{fontSize:14,color:C.gray,marginBottom:16,lineHeight:1.5}}>Las redes de clínicas varían según tu ciudad.</p>
             <div style={{borderRadius:16,overflow:"hidden",marginBottom:18,border:`1px solid ${C.grayLight}`}}>
@@ -288,10 +298,58 @@ export default function ViviQuiz() {
           </div>
         )}
 
+        {/* QDOLOR - Escanear el dolor */}
+        {cur==="qdolor" && (
+          <div style={{padding:"24px 20px"}}>
+            <div style={bdg(C.purple)}>💬 Pregunta 2 de 8</div>
+            <h2 style={{fontSize:22,fontWeight:800,color:C.navy,lineHeight:1.25,marginBottom:8}}>¿Qué fue lo más frustrante la última vez que tú o tu hijo necesitaron atención médica?</h2>
+            <p style={{fontSize:14,color:C.gray,marginBottom:22,lineHeight:1.5}}>Sé honesta — esto nos ayuda a encontrar exactamente lo que necesitas.</p>
+            {[
+              {v:"espera",     icon:"😤", t:"Esperar demasiado tiempo"},
+              {v:"especialista",icon:"🔍", t:"No encontrar un especialista rápido"},
+              {v:"gasto",      icon:"💸", t:"Gasté más de lo que esperaba"},
+              {v:"sola",       icon:"😞", t:"Me sentí sola resolviendo todo"},
+              {v:"agotador",   icon:"😮‍💨", t:"Todo el proceso fue agotador"},
+            ].map(o=>(
+              <div key={o.v} style={card(vals.dolor===o.v,C.purple)} onClick={()=>sel("dolor",o.v)}>
+                <div style={{fontSize:26,width:44,height:44,background:vals.dolor===o.v?C.purpleLight:C.bg,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{o.icon}</div>
+                <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:C.navy}}>{o.t}</div></div>
+                <div style={chk(vals.dolor===o.v,C.purple)}>{vals.dolor===o.v?"✓":""}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* INTER_DOLOR - Respuesta empática personalizada */}
+        {cur==="inter_dolor" && (()=>{
+          const msgs = {
+            espera:      {icon:"⚡", title:"Eso no debería pasarte.", body:"El acceso directo significa que tu hijo es atendido en minutos, no en horas. Sin filas. Sin esperas. Sin incertidumbre a las 2am."},
+            especialista:{icon:"🩺", title:"El especialista correcto, cuando lo necesitas.", body:"Con acceso preferencial puedes elegir el especialista y la clínica. Sin intermediarios, sin esperar semanas para una cita."},
+            gasto:       {icon:"💰", title:"Un plan bien diseñado cuesta menos de lo que imaginas.", body:"Y elimina los gastos inesperados. Saber exactamente qué cubre tu plan es la mejor inversión para tu familia."},
+            sola:        {icon:"🤝", title:"No vuelves a navegar esto sola.", body:"Tener una asesora personal de salud cambia todo. Siempre tendrás a alguien que te acompañe y resuelva contigo."},
+            agotador:    {icon:"🛡️", title:"La tranquilidad también se diseña.", body:"Cuando tienes la cobertura correcta, el sistema trabaja para ti — no al revés. Cada paso es simple y claro."},
+          };
+          const m = msgs[vals.dolor] || msgs.espera;
+          return (
+            <div style={{padding:"24px 20px"}}>
+              <div style={{background:`linear-gradient(135deg,${C.purpleLight},${C.blueLight})`,borderRadius:20,padding:"28px 20px",textAlign:"center",marginBottom:20,border:"1px solid rgba(108,59,255,0.15)"}}>
+                <div style={{fontSize:60,marginBottom:12}}>{m.icon}</div>
+                <div style={bdg(C.purple)}>Entendemos cómo te sientes</div>
+                <h2 style={{fontSize:20,fontWeight:800,color:C.navy,lineHeight:1.25,marginBottom:10}}>{m.title}</h2>
+                <p style={{fontSize:14,color:C.gray,lineHeight:1.6}}>{m.body}</p>
+              </div>
+              <div style={{...hl,borderLeft:`4px solid ${C.purple}`}}>
+                <div style={{fontSize:13,color:C.gray,fontStyle:"italic",lineHeight:1.6,marginBottom:6}}>"Desde que tengo mi plan de salud, siento que por primera vez alguien vela por mi familia. No estoy sola."</div>
+                <div style={{fontSize:12,color:C.gray,fontWeight:600}}>— Mamá afiliada, Bogotá ✓</div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Q2 EDAD */}
         {cur==="q2" && (
           <div style={{padding:"24px 20px"}}>
-            <div style={bdg(C.purple)}>🧸 Pregunta 2 de 6</div>
+            <div style={bdg(C.purple)}>🧸 Pregunta 3 de 8</div>
             <h2 style={{fontSize:22,fontWeight:800,color:C.navy,lineHeight:1.25,marginBottom:8}}>¿Qué edad tiene el menor que deseas proteger?</h2>
             <p style={{fontSize:14,color:C.gray,marginBottom:20,lineHeight:1.5}}>La edad determina la tarifa de convenio disponible.</p>
             {[
@@ -314,7 +372,7 @@ export default function ViviQuiz() {
         {/* Q2B GÉNERO */}
         {cur==="q2b" && (
           <div style={{padding:"24px 20px"}}>
-            <div style={bdg(C.blue)}>🧬 Pregunta 3 de 6</div>
+            <div style={bdg(C.blue)}>🧬 Pregunta 4 de 8</div>
             <h2 style={{fontSize:22,fontWeight:800,color:C.navy,lineHeight:1.25,marginBottom:8}}>¿El menor es niño o niña?</h2>
             <p style={{fontSize:14,color:C.gray,marginBottom:20,lineHeight:1.5}}>Esto nos permite calcular la tarifa exacta para su perfil.</p>
             {[
@@ -335,30 +393,43 @@ export default function ViviQuiz() {
           <div style={{padding:"24px 20px"}}>
             <div style={{background:`linear-gradient(135deg,${C.purpleLight},${C.blueLight})`,borderRadius:20,padding:"24px 20px",textAlign:"center",marginBottom:18,border:"1px solid rgba(108,59,255,0.15)"}}>
               <div style={{fontSize:56,marginBottom:10}}>💡</div>
-              <div style={bdg(C.purple)}>{vals.edad==="5-14"?"✨ Descuento de convenio activado":"✅ Plan disponible para ti"}</div>
-              <p style={{fontSize:14,fontWeight:600,color:C.navy,lineHeight:1.5}}>
-                {vals.edad==="5-14"
-                  ? <>El rango 5–14 activa un <span style={{color:C.purple}}>descuento del 15%*</span> sobre la tarifa plena individual.</>
-                  : <>Tu familia merece <span style={{color:C.blue}}>la mejor cobertura</span>. El descuento aplica en todos los rangos.</>}
+              <div style={bdg(C.purple)}>✨ Buenas noticias para tu familia</div>
+              <p style={{fontSize:15,fontWeight:600,color:C.navy,lineHeight:1.5}}>
+                Existen diferentes alternativas para acceder al sistema de salud con <span style={{color:C.purple}}>tranquilidad real</span>. Con medicina prepagada puedes tener:
               </p>
-              {vals.edad==="5-14"&&<p style={{fontSize:11,color:C.purple,marginTop:8,fontStyle:"italic"}}>*Frente a tarifa plena individual. Aplica condiciones.</p>}
             </div>
-            <div style={{display:"flex",justifyContent:"space-around",background:C.white,border:`1px solid ${C.grayLight}`,borderRadius:16,padding:"16px 8px",marginBottom:12,boxShadow:"0 2px 12px rgba(15,31,61,0.06)"}}>
-              {[["15%*","Descuento\nde convenio"],["100%","Cobertura\nhospitalización"],["4","Clínicas\nVIP Bogotá"]].map(([n,l])=>(
-                <div key={n} style={{textAlign:"center"}}>
-                  <span style={{fontSize:22,fontWeight:800,color:C.purple,display:"block"}}>{n}</span>
-                  <span style={{fontSize:10,color:C.gray,lineHeight:1.3,display:"block",marginTop:2}}>{l.split("\n").map((t,i)=><span key={i}>{t}{i===0&&<br/>}</span>)}</span>
+
+            <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:14}}>
+              {[
+                {icon:"👨‍⚕️", t:"Médico o pediatra en casa",       s:"En horarios y lugares establecidos"},
+                {icon:"⏰",   t:"Atención oportuna",                s:"Sin las esperas del sistema tradicional"},
+                {icon:"🏥",   t:"Acceso a clínicas de alto nivel",  s:"Con habitación privada en hospitalización"},
+                {icon:"📱",   t:"Telemedicina 24/7",                s:"Orientación médica desde donde estés"},
+                {icon:"💉",   t:"Vacunas y medicina preventiva",    s:"Incluidas en tu cobertura"},
+                {icon:"⭐",   t:"Atención preferencial en urgencias",s:"Tu familia primero, siempre"},
+              ].map(b=>(
+                <div key={b.t} style={{display:"flex",alignItems:"center",gap:12,background:C.white,border:`1px solid ${C.grayLight}`,borderRadius:14,padding:"12px 14px",boxShadow:"0 1px 6px rgba(15,31,61,0.05)"}}>
+                  <div style={{fontSize:22,width:40,height:40,background:C.purpleLight,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{b.icon}</div>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:700,color:C.navy}}>{b.t}</div>
+                    <div style={{fontSize:11,color:C.gray,marginTop:1}}>{b.s}</div>
+                  </div>
                 </div>
               ))}
             </div>
-            <p style={note}>*Frente a tarifa plena individual. Tarifas 2026 incluyen IVA del 5%.</p>
+
+            <div style={{background:`linear-gradient(135deg,${C.purpleLight},${C.blueLight})`,borderRadius:14,padding:"14px 16px",border:"1px solid rgba(108,59,255,0.15)"}}>
+              <p style={{fontSize:13,color:C.navy,lineHeight:1.65,textAlign:"center",fontWeight:500}}>
+                💜 Una alternativa <strong>más accesible que una póliza</strong>, con beneficios que realmente sientes en el día a día de tu familia.
+              </p>
+            </div>
           </div>
         )}
 
         {/* Q3 PRIORIDAD */}
         {cur==="q3" && (
           <div style={{padding:"24px 20px"}}>
-            <div style={bdg(C.blue)}>🏥 Pregunta 4 de 6</div>
+            <div style={bdg(C.blue)}>🏥 Pregunta 5 de 8</div>
             <h2 style={{fontSize:22,fontWeight:800,color:C.navy,lineHeight:1.25,marginBottom:8}}>Ante una urgencia nocturna, ¿qué valoras más?</h2>
             <p style={{fontSize:14,color:C.gray,marginBottom:14,lineHeight:1.5}}>Esto nos ayuda a encontrar el plan ideal para tu familia.</p>
             <div style={{borderRadius:16,overflow:"hidden",marginBottom:16,border:`1px solid ${C.grayLight}`}}>
@@ -403,82 +474,139 @@ export default function ViviQuiz() {
           </div>
         )}
 
-        {/* Q4 PLANES */}
+        {/* Q4 NIVEL DE PROTECCIÓN */}
         {cur==="q4" && (
           <div style={{padding:"24px 20px"}}>
-            <div style={bdg(C.purple)}>💎 Pregunta 5 de 6</div>
-            <h2 style={{fontSize:22,fontWeight:800,color:C.navy,lineHeight:1.25,marginBottom:4}}>Selecciona el plan para tu familia</h2>
-            <p style={{fontSize:13,color:C.gray,marginBottom:16,lineHeight:1.5}}>Elige el nivel de cobertura que mejor se adapte a tu presupuesto.</p>
+            <div style={bdg(C.purple)}>🛡️ Pregunta 6 de 9</div>
+            <h2 style={{fontSize:22,fontWeight:800,color:C.navy,lineHeight:1.25,marginBottom:8}}>¿Qué nivel de respaldo te haría sentir más tranquila con la salud de tu familia?</h2>
+            <p style={{fontSize:14,color:C.gray,marginBottom:20,lineHeight:1.5}}>Elige según lo que más valoras para tu familia.</p>
 
-            {/* DES */}
+            {/* ESENCIAL */}
             {(()=>{
-              const s=vals.plan==="Diamante Élite Superior";
+              const s=vals.plan==="⭐⭐⭐ Protección Esencial";
               return(
-                <div onClick={()=>sel("plan","Diamante Élite Superior")} style={{background:s?C.purpleLight:C.white,border:`1.5px solid ${s?C.purple:"rgba(108,59,255,0.25)"}`,borderRadius:18,padding:"16px",marginBottom:10,cursor:"pointer",boxShadow:s?`0 0 0 3px ${C.purple}22`:"0 2px 10px rgba(15,31,61,0.06)",position:"relative",transition:"all 0.18s"}}>
+                <div onClick={()=>sel("plan","⭐⭐⭐ Protección Esencial")} style={{background:s?C.blueLight:C.white,border:`1.5px solid ${s?C.blue:C.grayLight}`,borderRadius:18,padding:"16px",marginBottom:10,cursor:"pointer",boxShadow:s?`0 0 0 3px ${C.blue}22`:"0 2px 10px rgba(15,31,61,0.06)",transition:"all 0.18s"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                    <span style={{fontSize:26}}>💚</span>
+                    <div>
+                      <div style={{fontSize:15,fontWeight:700,color:C.navy}}>Protección Esencial</div>
+                      <div style={{fontSize:12,color:C.gray,marginTop:2}}>Una opción práctica para familias que buscan respaldo médico privado en Bogotá.</div>
+                    </div>
+                  </div>
+                  <div style={{fontSize:12,color:C.navy,background:s?C.blueLight:"#F7F8FC",borderRadius:10,padding:"8px 12px",lineHeight:1.7}}>
+                    ✅ Urgencias · Citas médicas · Especialistas · Hospitalización<br/>
+                    <span style={{color:"#C04000",fontWeight:600}}>📍 Atención en Bogotá</span> · Acceso a red de 17 centros médicos privados
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* NACIONAL */}
+            {(()=>{
+              const s=vals.plan==="⭐⭐⭐⭐ Protección Nacional";
+              return(
+                <div onClick={()=>sel("plan","⭐⭐⭐⭐ Protección Nacional")} style={{background:s?C.blueLight:C.white,border:`1.5px solid ${s?C.blue:C.grayLight}`,borderRadius:18,padding:"16px",marginBottom:10,cursor:"pointer",boxShadow:s?`0 0 0 3px ${C.blue}22`:"0 2px 10px rgba(15,31,61,0.06)",transition:"all 0.18s"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                    <span style={{fontSize:26}}>💙</span>
+                    <div>
+                      <div style={{fontSize:15,fontWeight:700,color:C.navy}}>Protección Nacional</div>
+                      <div style={{fontSize:12,color:C.gray,marginTop:2}}>Mayor tranquilidad dentro y fuera de Bogotá, con respaldo médico a nivel nacional.</div>
+                    </div>
+                  </div>
+                  <div style={{fontSize:12,color:C.navy,background:s?C.blueLight:"#F7F8FC",borderRadius:10,padding:"8px 12px",lineHeight:1.7}}>
+                    ✅ Urgencias · Citas médicas · Especialistas · Hospitalización · Cobertura nacional<br/>
+                    🌐 Red de 18 centros médicos a nivel nacional + cobertura en Bogotá
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* PREMIUM */}
+            {(()=>{
+              const s=vals.plan==="⭐⭐⭐⭐⭐ Protección Premium";
+              return(
+                <div onClick={()=>sel("plan","⭐⭐⭐⭐⭐ Protección Premium")} style={{background:s?C.purpleLight:C.white,border:`1.5px solid ${s?C.purple:"rgba(108,59,255,0.25)"}`,borderRadius:18,padding:"16px",marginBottom:10,cursor:"pointer",boxShadow:s?`0 0 0 3px ${C.purple}22`:"0 2px 10px rgba(15,31,61,0.06)",position:"relative",transition:"all 0.18s"}}>
                   <div style={{position:"absolute",top:12,right:12,background:`linear-gradient(135deg,${C.purple},${C.blue})`,color:"#fff",fontSize:9,fontWeight:800,letterSpacing:1,padding:"3px 9px",borderRadius:100}}>⭐ PREMIUM</div>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                    <span style={{fontSize:22}}>💎</span>
-                    <div>
-                      <div style={{fontSize:14,fontWeight:700,color:C.navy}}>Plan Diamante Élite Superior</div>
-                      <div style={{fontSize:11,color:C.gray}}>Cobertura VIP Total</div>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                    <span style={{fontSize:26}}>💎</span>
+                    <div style={{paddingRight:60}}>
+                      <div style={{fontSize:15,fontWeight:700,color:C.navy}}>Protección Premium</div>
+                      <div style={{fontSize:12,color:C.gray,marginTop:2}}>Una experiencia médica más completa, con acceso a instituciones de alta complejidad y mayor libertad de elección médica.</div>
                     </div>
                   </div>
-                  <div style={{fontSize:11,color:C.navy,background:s?C.purpleLight:"#F7F8FC",borderRadius:8,padding:"6px 10px",marginBottom:10,lineHeight:1.5}}>✅ Urgencias · Libre elección de especialista · Hospitalización suite* · Cobertura nacional</div>
-                  <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-                    <span style={{fontSize:13,color:C.gray}}>Desde</span>
-                    <span style={{fontSize:26,fontWeight:800,color:C.purple}}>$350.000</span>
-                    <span style={{fontSize:12,color:C.gray}}>COP/mes*</span>
+                  <div style={{fontSize:12,color:C.navy,background:s?C.purpleLight:"#F7F8FC",borderRadius:10,padding:"8px 12px",lineHeight:1.8}}>
+                    🏥 <strong>Clínica Del Country · Fundación Santa Fe · Clínica De La Mujer · Clínica Los Nogales</strong><br/>
+                    ✅ Urgencias · Libre elección de especialista · Hospitalización preferencial* · Cobertura nacional
                   </div>
-                  <p style={note}>*Suite sujeta a disponibilidad</p>
+                  <p style={{fontSize:11,color:C.gray,marginTop:6,fontStyle:"italic"}}>*Sujeta a disponibilidad</p>
                 </div>
               );
             })()}
 
-            {/* DE */}
+            {/* NO SÉ */}
             {(()=>{
-              const s=vals.plan==="Zafiro Élite Nacional";
+              const s=vals.plan==="orientacion";
               return(
-                <div onClick={()=>sel("plan","Zafiro Élite Nacional")} style={{background:s?C.blueLight:C.white,border:`1.5px solid ${s?C.blue:C.grayLight}`,borderRadius:18,padding:"16px",marginBottom:10,cursor:"pointer",boxShadow:s?`0 0 0 3px ${C.blue}22`:"0 2px 10px rgba(15,31,61,0.06)",transition:"all 0.18s"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                    <span style={{fontSize:22}}>💙</span>
-                    <div>
-                      <div style={{fontSize:14,fontWeight:700,color:C.navy}}>Plan Zafiro Élite Nacional</div>
-                      <div style={{fontSize:11,color:C.gray}}>Respaldo en todo el país</div>
+                <div onClick={()=>sel("plan","orientacion")} style={{background:s?C.blueLight:C.white,border:`1.5px solid ${s?C.blue:C.grayLight}`,borderRadius:18,padding:"16px",marginBottom:10,cursor:"pointer",boxShadow:s?`0 0 0 3px ${C.blue}22`:"0 2px 10px rgba(15,31,61,0.06)",transition:"all 0.18s"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <span style={{fontSize:26}}>🤔</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:15,fontWeight:700,color:C.navy}}>Aún no tengo claro qué necesito</div>
+                      <div style={{fontSize:12,color:s?C.blue:C.gray,marginTop:2}}>Me gustaría orientación para entender qué se adapta mejor a mi situación.</div>
                     </div>
-                  </div>
-                  <div style={{fontSize:11,color:C.navy,background:s?C.blueLight:"#F7F8FC",borderRadius:8,padding:"6px 10px",marginBottom:10,lineHeight:1.5}}>✅ Urgencias · Citas · Especialistas · Hospitalización · Cobertura nacional</div>
-                  <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-                    <span style={{fontSize:13,color:C.gray}}>Desde</span>
-                    <span style={{fontSize:26,fontWeight:800,color:C.blue}}>$250.000</span>
-                    <span style={{fontSize:12,color:C.gray}}>COP/mes*</span>
+                    <div style={{...chk(s),flexShrink:0}}>{s?"✓":""}</div>
                   </div>
                 </div>
               );
             })()}
+          </div>
+        )}
 
-            {/* ZE */}
-            {(()=>{
-              const s=vals.plan==="Zafiro Exclusivo Bogotá";
-              return(
-                <div onClick={()=>sel("plan","Zafiro Exclusivo Bogotá")} style={{background:s?C.blueLight:C.white,border:`1.5px solid ${s?C.blue:C.grayLight}`,borderRadius:18,padding:"16px",marginBottom:10,cursor:"pointer",boxShadow:s?`0 0 0 3px ${C.blue}22`:"0 2px 10px rgba(15,31,61,0.06)",transition:"all 0.18s"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                    <span style={{fontSize:22}}>🏢</span>
-                    <div>
-                      <div style={{fontSize:14,fontWeight:700,color:C.navy}}>Plan Zafiro Exclusivo Bogotá</div>
-                      <div style={{fontSize:11,color:C.gray}}>Cobertura local preferencial</div>
-                    </div>
-                  </div>
-                  <div style={{fontSize:11,color:C.navy,background:s?C.blueLight:"#F7F8FC",borderRadius:8,padding:"6px 10px",marginBottom:10,lineHeight:1.5}}>✅ Urgencias · Citas · Especialistas · Hospitalización · <span style={{color:"#C04000",fontWeight:700}}>📍 Solo Bogotá</span></div>
-                  <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-                    <span style={{fontSize:13,color:C.gray}}>Desde</span>
-                    <span style={{fontSize:26,fontWeight:800,color:C.blue}}>$220.000</span>
-                    <span style={{fontSize:12,color:C.gray}}>COP/mes*</span>
-                  </div>
+        {/* QPRESUPUESTO */}
+        {cur==="qpresupuesto" && (
+          <div style={{padding:"24px 20px"}}>
+            <div style={bdg(C.blue)}>💰 Pregunta 7 de 9</div>
+            <h2 style={{fontSize:22,fontWeight:800,color:C.navy,lineHeight:1.25,marginBottom:8}}>Pensando en la tranquilidad de tu familia, ¿qué nivel de inversión mensual te sentirías cómoda considerando?</h2>
+            <p style={{fontSize:14,color:C.gray,marginBottom:22,lineHeight:1.5}}>No hay respuesta incorrecta — toda opción tiene una solución.</p>
+            {[
+              {v:"accesible",  icon:"🌱", t:"Quiero empezar con algo accesible",          s:"Busco una opción que se ajuste a mi presupuesto actual"},
+              {v:"equilibrio", icon:"⚖️", t:"Busco equilibrio entre respaldo y presupuesto",s:"Quiero buena cobertura sin que sea el gasto más alto del mes"},
+              {v:"premium",    icon:"🛡️", t:"La protección de mi familia es prioridad",    s:"Estoy dispuesta a priorizar mayor respaldo y tranquilidad"},
+              {v:"nosegura",   icon:"🤔", t:"No estoy segura, necesito orientación",       s:"Me gustaría entender qué cambia según el presupuesto"},
+            ].map(o=>(
+              <div key={o.v} style={card(vals.presupuesto===o.v)} onClick={()=>sel("presupuesto",o.v)}>
+                <div style={{fontSize:26,width:44,height:44,background:vals.presupuesto===o.v?C.blueLight:C.bg,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{o.icon}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,fontWeight:600,color:C.navy,lineHeight:1.35}}>{o.t}</div>
+                  <div style={{fontSize:12,color:vals.presupuesto===o.v?C.blue:C.gray,marginTop:3}}>{o.s}</div>
                 </div>
-              );
-            })()}
+                <div style={chk(vals.presupuesto===o.v)}>{vals.presupuesto===o.v?"✓":""}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
-            <p style={{fontSize:11,color:C.gray,lineHeight:1.6,marginTop:8,fontStyle:"italic",padding:"10px 12px",background:"#F0F2F8",borderRadius:10}}>*Tarifas de convenio comercial vigentes. Sujetas a variaciones por edad y políticas de suscripción.</p>
+        {/* QURGENCIA - Medir temperatura de compra */}
+        {cur==="qurgencia" && (
+          <div style={{padding:"24px 20px"}}>
+            <div style={bdg(C.blue)}>⏰ Pregunta 8 de 9</div>
+            <h2 style={{fontSize:22,fontWeight:800,color:C.navy,lineHeight:1.25,marginBottom:8}}>Si existiera una forma de sentirte más tranquila con la salud de tu familia, ¿qué tan pronto te gustaría conocerla?</h2>
+            <p style={{fontSize:14,color:C.gray,marginBottom:22,lineHeight:1.5}}>No hay respuesta incorrecta — queremos adaptarnos a tu momento.</p>
+            {[
+              {v:"semana",    icon:"🔥", t:"Esta semana",              s:"Quiero conocerla ya"},
+              {v:"mes",       icon:"📅", t:"Este mes",                 s:"Lo tengo en mente"},
+              {v:"explorando",icon:"👀", t:"Solo estoy explorando",    s:"Por ahora sin compromiso"},
+              {v:"nosegura",  icon:"🤔", t:"Aún no estoy segura",      s:"Necesito más información"},
+            ].map(o=>(
+              <div key={o.v} style={card(vals.urgencia===o.v)} onClick={()=>sel("urgencia",o.v)}>
+                <div style={{fontSize:26,width:44,height:44,background:vals.urgencia===o.v?C.blueLight:C.bg,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{o.icon}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:15,fontWeight:600,color:C.navy}}>{o.t}</div>
+                  <div style={{fontSize:12,color:vals.urgencia===o.v?C.blue:C.gray,marginTop:2}}>{o.s}</div>
+                </div>
+                <div style={chk(vals.urgencia===o.v)}>{vals.urgencia===o.v?"✓":""}</div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -489,8 +617,19 @@ export default function ViviQuiz() {
               <div style={{width:70,height:70,borderRadius:"50%",background:`linear-gradient(135deg,${C.blue},${C.purple})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,color:"#fff",fontWeight:800,margin:"0 auto 14px",boxShadow:`0 8px 28px rgba(108,59,255,0.35)`}}>✓</div>
               <div style={bdg(C.purple)}>🎉 ¡Perfil verificado!</div>
               <h2 style={{fontSize:20,fontWeight:800,color:C.navy,lineHeight:1.25,marginBottom:8}}>Calificas para tarifa de convenio especial</h2>
-              <p style={{fontSize:14,color:C.gray,lineHeight:1.5}}>Déjame tus datos y te envío tu cotización exacta en menos de 24h.</p>
             </div>
+
+            {/* Mini validación emocional */}
+            <div style={{background:`linear-gradient(135deg,${C.purpleLight},#F8F0FF)`,border:`1px solid rgba(108,59,255,0.2)`,borderRadius:16,padding:"18px",marginBottom:20,textAlign:"center"}}>
+              <div style={{fontSize:28,marginBottom:8}}>💜</div>
+              <p style={{fontSize:14,color:C.navy,lineHeight:1.65,fontWeight:500}}>
+                Gracias por responder con tanta honestidad. Según lo que compartiste, valoras la <strong style={{color:C.purple}}>tranquilidad y el acompañamiento real</strong> cuando tu familia más lo necesita.
+              </p>
+              <p style={{fontSize:13,color:C.gray,marginTop:8,lineHeight:1.5}}>
+                Déjame tus datos y revisamos juntas la opción que mejor se adapta a ti.
+              </p>
+            </div>
+
             <input style={inp} type="text"  placeholder="Tu nombre completo"              value={name}  onChange={e=>setName(e.target.value)}/>
             <input style={inp} type="tel"   placeholder="Tu WhatsApp (ej: 311 234 5678)"  value={phone} onChange={e=>setPhone(e.target.value)}/>
             <HabeasRow/>
@@ -526,15 +665,19 @@ export default function ViviQuiz() {
           transition:"all 0.2s",
         }}>
           {sending?"Enviando...":
-           cur==="intro"  ?"Comenzar diagnóstico →":
-           cur==="q1"     ?"Continuar →":
-           cur==="inter1" ?"Entiendo, continuar →":
-           cur==="q2"     ?"Continuar →":
-           cur==="q2b"    ?"Continuar →":
-           cur==="inter2" ?"Ver planes disponibles →":
-           cur==="q3"     ?"Continuar →":
-           cur==="inter3" ?"Ver mi tarifa personalizada →":
-           cur==="q4"     ?"Continuar →":
+           cur==="intro"        ?"Comenzar diagnóstico →":
+           cur==="q1"           ?"Continuar →":
+           cur==="inter1"       ?"Entiendo, continuar →":
+           cur==="qdolor"       ?"Continuar →":
+           cur==="inter_dolor"  ?"Continuar →":
+           cur==="q2"           ?"Continuar →":
+           cur==="q2b"          ?"Continuar →":
+           cur==="inter2"       ?"Ver opciones de protección →":
+           cur==="q3"           ?"Continuar →":
+           cur==="inter3"       ?"Ver niveles de protección →":
+           cur==="q4"           ?"Continuar →":
+           cur==="qpresupuesto" ?"Continuar →":
+           cur==="qurgencia"    ?"Continuar →":
            "Solicitar asesoría por WhatsApp 💬"}
         </button>
       </div>
